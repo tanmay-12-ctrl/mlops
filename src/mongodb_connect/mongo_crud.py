@@ -1,7 +1,8 @@
-from typing import Any
+
 import pandas as pd
 import json
 from pymongo.mongo_client import MongoClient
+
 
 class MongoOperation:
     """
@@ -45,7 +46,7 @@ class MongoOperation:
 
         elif isinstance(record, dict):
             collection.insert_one(record)
-        
+
         else:
             raise TypeError("Record must be a dict or a list of dicts.")
 
@@ -63,10 +64,12 @@ class MongoOperation:
         elif datafile_path.endswith(".xlsx"):
             dataframe = pd.read_excel(datafile_path)
         else:
-            raise ValueError("Unsupported file format. Please use a .csv or .xlsx file.")
+            raise ValueError(
+                "Unsupported file format. Please use a .csv or .xlsx file."
+            )
 
         # Convert dataframe to a list of dictionaries (JSON records)
         data_json = json.loads(dataframe.to_json(orient="records"))
-        
+
         collection = self._get_collection(collection_name)
         collection.insert_many(data_json)
