@@ -1,71 +1,72 @@
 from typing import Any
-import os
 import pandas as pd
-import pymongo
 import json
-from ensure import ensure_annotations
-
-
-from typing import Any
-import os
-import pandas as pd
 from pymongo.mongo_client import MongoClient
-import json
-from ensure import ensure_annotations
 
+class MongoOperation:
+    """
+    A class to handle common MongoDB operations like inserting records
+    and performing bulk inserts from CSV or Excel files.
+    """
 
-class mongo_operation:
-    __collection=None # here i have created a private/protected variable
-    __database=None
-    
-    def __init__(self,client_url: str, database_name: str, collection_name: str=None):
-        self.client_url=client_url
-        self.database_name=database_name
-        self.collection_name=collection_name
-       
-    def create_mongo_client(self,collection=None):
-        client=MongoClient(self.client_url)
-        return client
-    
-    def create_database(self,collection=None):
-        if mongo_operation.__database==None:
-            client=self.create_mongo_client(collection)
-            self.database=client[self.database_name]
-        return self.database 
-    
-    def create_collection(self,collection=None):
-        if mongo_operation.__collection==None:
-            database=self.create_database(collection)
-            self.collection=database[self.collection_name]
-            mongo_operation.__collection=collection
-        
-        if mongo_operation.__collection!=collection:
-            database=self.create_database(collection)
-            self.collection=database[self.collection_name]
-            mongo_operation.__collection=collection
-            
-        return self.collection
-    
-    def insert_record(self,record: dict, collection_name: str) -> Any:
-        if type(record) == list:
+    def __init__(self, client_url: str, database_name: str):
+        """
+        Initializes the MongoOperation object, creates a client, and connects to the database.
+
+        Args:
+            client_url (str): The connection URL for the MongoDB client.
+            database_name (str): The name of the database to connect to.
+        """
+        self.client_url = client_url
+        self.database_name = database_name
+        self.client = MongoClient(self.client_url)
+        self.db = self.client[self.database_name]
+
+    def _get_collection(self, collection_name: str):
+        """A helper method to get a collection object from the database."""
+        return self.db[collection_name]
+
+    def insert_record(self, record: dict or list, collection_name: str):
+        """
+        Inserts a single record (dict) or multiple records (list of dicts)
+        into the specified collection.
+
+        Args:
+            record (dict or list): The data to insert.
+            collection_name (str): The name of the collection to insert into.
+        """
+        collection = self._get_collection(collection_name)
+
+        if isinstance(record, list):
             for data in record:
-                if type(data) != dict:
-                    raise TypeError("record must be in the dict")    
-            collection=self.create_collection(collection_name)
+                if not isinstance(data, dict):
+                    raise TypeError("All items in the list must be dictionaries.")
             collection.insert_many(record)
-        elif type(record)==dict:
-            collection=self.create_collection(collection_name)
+
+        elif isinstance(record, dict):
             collection.insert_one(record)
-    
-    def bulk_insert(self,datafile,collection_name:str=None):
-        self.path=datafile
         
-        if self.path.endswith('.csv'):
-            pd.read.csv(self.path,encoding='utf-8')
-            
-        elif self.path.endswith(".xlsx"):
-            dataframe=pd.read_excel(self.path,encoding='utf-8')
-            
-        datajson=json.loads(dataframe.to_json(orient='record'))
-        collection=self.create_collection()
-        collection.insert_many(datajson)
+        else:
+            raise TypeError("Record must be a dict or a list of dicts.")
+
+    def bulk_insert(self, datafile_path: str, collection_name: str):
+        """
+        Performs a bulk insert into a collection from a CSV or Excel file.
+
+        Args:
+            datafile_path (str): The file path for the CSV or Excel data.
+            collection_name (str): The name of the collection for the bulk insert.
+        """
+        dataframe = None
+        if datafile_path.endswith(".csv"):
+            dataframe = pd.read_csv(datafile_path, encoding="utf-8")
+        elif datafile_path.endswith(".xlsx"):
+            dataframe = pd.read_excel(datafile_path)
+        else:
+            raise ValueError("Unsupported file format. Please use a .csv or .xlsx file.")
+
+        # Convert dataframe to a list of dictionaries (JSON records)
+        data_json = json.loads(dataframe.to_json(orient="records"))
+        
+        collection = self._get_collection(collection_name)
+        collection.insert_many(data_json)
