@@ -1,9 +1,5 @@
-pymongo
-pymongo[srv]
-dnspython
-pandas
-numpy
-ensure
-pytest
-
--e .
+pymongo>=4.10.1
+dnspython>=2.6.1
+pandas>=2.0.3
+numpy>=1.24.4
+# optionally remove ensure if not really needed
