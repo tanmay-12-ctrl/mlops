@@ -1,7 +1,8 @@
-
-import pandas as pd
 import json
+from typing import Union
+import pandas as pd
 from pymongo.mongo_client import MongoClient
+from pymongo.database import Database, Collection
 
 
 class MongoOperation:
@@ -20,20 +21,20 @@ class MongoOperation:
         """
         self.client_url = client_url
         self.database_name = database_name
-        self.client = MongoClient(self.client_url)
-        self.db = self.client[self.database_name]
+        self.client: MongoClient = MongoClient(self.client_url)
+        self.db: Database = self.client[self.database_name]
 
-    def _get_collection(self, collection_name: str):
+    def _get_collection(self, collection_name: str) -> Collection:
         """A helper method to get a collection object from the database."""
         return self.db[collection_name]
 
-    def insert_record(self, record: dict or list, collection_name: str):
+    def insert_record(self, record: Union[dict, list], collection_name: str) -> None:
         """
         Inserts a single record (dict) or multiple records (list of dicts)
         into the specified collection.
 
         Args:
-            record (dict or list): The data to insert.
+            record (Union[dict, list]): The data to insert.
             collection_name (str): The name of the collection to insert into.
         """
         collection = self._get_collection(collection_name)
@@ -50,7 +51,7 @@ class MongoOperation:
         else:
             raise TypeError("Record must be a dict or a list of dicts.")
 
-    def bulk_insert(self, datafile_path: str, collection_name: str):
+    def bulk_insert(self, datafile_path: str, collection_name: str) -> None:
         """
         Performs a bulk insert into a collection from a CSV or Excel file.
 
@@ -58,7 +59,7 @@ class MongoOperation:
             datafile_path (str): The file path for the CSV or Excel data.
             collection_name (str): The name of the collection for the bulk insert.
         """
-        dataframe = None
+        dataframe: pd.DataFrame
         if datafile_path.endswith(".csv"):
             dataframe = pd.read_csv(datafile_path, encoding="utf-8")
         elif datafile_path.endswith(".xlsx"):
