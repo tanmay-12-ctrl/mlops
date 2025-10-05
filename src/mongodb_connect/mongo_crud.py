@@ -74,3 +74,4 @@ class MongoOperation:
 
         collection = self._get_collection(collection_name)
         collection.insert_many(data_json)
+        
